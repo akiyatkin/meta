@@ -4,6 +4,7 @@
         "infrajs/ans":"~1",
         "infrajs/access":"~1",
         "infrajs/mail":"~1",
+        "infrajs/rest":"~1",
         "infrajs/path":"~1",
         "infrajs/lang":"~1"
     },

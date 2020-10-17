@@ -1,41 +1,67 @@
 <?php
 
 use akiyatkin\meta\Meta;
+use infrajs\rest\Rest;
 
 
+$context = new Meta(); //Если указан путь, то всё сверяется с meta.json
 
-$context = new Meta('vendor/akiyatkin/meta/meta.json'); //Если указан путь, то всё светяерся с meta.json
+/*
+argument
+handler
+function - без кэша, default
+action
+variable
 
-//handler, приходит какое-то стартовое значение, смысл которого зависит от того к чему handler привязан (arg, action, handler, var)
-//A запускает Б, а Б запускает handler С, которому нужен и A и Б -- амперсанд не исопльзуется
-//handler запускаеться может перед какой-то обработкой или после. Всё может работать без meta.json
+*/
 
+//action запускаться может перед какой-то обработкой или после. Всё может работать без meta.json
 //Обработка не зависит от родителя.
-$context->addAction('post', function () {
+$context->addFunction('post', function () {
 	$submit = ($_SERVER['REQUEST_METHOD'] === 'POST' || Ans::GET('submit', 'bool'));
 	if (!$submit) return $this->fail('lang.post');
-})
+});
 
 //Обработка с зависимостью от родителя
+//handler, приходит какое-то стартовое значение, смысл которого зависит от того к чему handler привязан (arg, action, handler, var)
 $context->addHandler('notempty', ['post'], function ($notempty, $pname) {
-	if (!$notempty) return $this->fail('empty', $pname)
-},['check'])
+	if (!$notempty) return $this->fail('empty', $pname);
+});
 
-$context->addHandler('Check the legality of the action', function ($notempty, $pname) {
-	if (!$notempty) return $this->fail('empty', $pname)
-},['check'])
+$context->addFunction('Check the legality of the action', function () {
+	extract($this->gets(['action', 'order_id']));
+	if (!$notempty) return $this->fail('empty', $pname);
+});
 
 //Обработка не зависиот от родителя. Приходит Request, наличие обязательно, из адреса не запускается
-$context->addArgument('order_id', function ($order_id) {
+$context->addArgument('order_id', ['notempty']);
+$context->addArgument('order_nick', ['notempty']);
 
-})
+$context->addVariable('order_id@valid', function () {
+	if ($this->is('order_nick')) {
+		$order_nick = $this->get('order_nick');
+		$order_id = $order_nick;
+	} else {
+		$order_id = $this->get('order_id');
+	}
+	return $order_id;
+	
+}, ['post', 'notempty', 'Check the legality of the action']);
 
-$context->addAction('order_id@valid', function () {
-	extract($this->gets(['order_id']));
-	if (strlen($order_id)<10) return $this->fail('notvalid', $pname)
-},['Check the legality of the action'])
+$context->addVariable('order', function () {
+	extract($this->gets(['order_id@valid']));
+	$order = [];
+	return $order;
+});
 
-$context->addHandler('notempty', function ($beforename) {
-	extract($this->gets(['order_id']));
-	if (strlen($order_id)<10) return $this->fail('notvalid', $pname)
-})
+$context->addAction('getorder', ['order_nick'], function ($beforename) {
+	extract($this->gets(['order_id@valid']));
+	$order = [];
+	$this->ans['order'] = $order;
+});
+
+$context->add('fastorder', function () {
+
+});
+$action = Rest::first();
+return $context->init($action);
