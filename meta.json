@@ -1,0 +1,263 @@
+{
+	"dependencies": {
+		"get": {
+			"default": ["lang", "ans"],
+			"user": ["user_id"],
+			"user_id": ["token"],
+			"count": ["order_id"],
+			"coupon": ["order_id"],
+			"comment": ["order_id"],
+			"name": ["order_id"],
+			"transport": ["order_id"],
+			"zip": ["order_id"],
+			"pay": ["order_id"],
+			"callback": ["order_id"],
+			"address": ["order_id"],
+			"phone": ["order_id"],
+			"pvz": ["order_id"],
+			"status": ["order_id"],
+			"rule": ["status"],
+			"order_id": ["user", "place"],
+			"active_id#create": ["city_id", "timezone"],
+			"order_nick": ["user", "place"],
+			"basket": ["order_id*"],
+			"order": ["order_id"],
+			"article_nick": ["producer_nick", "item_num", "catkit"]
+		}
+	},
+	"args": {
+		"coupon": [],
+		"commentmanager": ["notempty"],
+		"position_ids": ["intarray"],
+		"start": ["int"],
+		"end": ["int"],
+		"statuses": [],
+		"lang": [],
+		"count": ["int", "notempty"],
+		"coupon": [],
+		"comment": ["text"],
+		"name": [],
+		"zip": ["int"],
+		"address": [],
+		"phone": [],
+		"pvz": [],
+		"place": [],
+		"item_num": ["int"],
+		"article_nick": ["notempty"],
+		"producer_nick": ["notempty"],
+		"position_id": ["int", "notempty"],
+		"city_id": ["int", "notempty"],
+		"timezone": ["notempty"],
+		"catkit": [],
+		"email": [],
+		"transport": [],
+		"callback": [],
+		"pay": [],
+		"token": [],
+		"order_nick": [],
+		"order_id": ["int"]
+	},
+	"vars": [
+		"ouser", "oemail", "ans", "user",
+		"active_id", "active_id#", "active_id#create",
+		"city", "model", "basket", "user_id", "rule",
+		"order", "order?",
+		"order_id", "order_id#",
+		"status", "meta"
+	],
+	"handlers": ["post", "admin", "paid"],
+	
+	"actions": {
+		"estimate": {
+			"required": ["article_nick", "city_id"]
+		},
+		"cart": {
+			"required": ["user"]
+		},
+		"mystat": {
+			"required": ["basket", "order_id"]
+		},
+		"getmeta": {
+
+		},
+		"orders": {
+			"required": ["user", "statuses", "start"],
+			"handlers": ["admin"]
+		},
+		"refreezeall": {
+			"required": ["user"],
+			"handlers": ["admin", "post"]
+		},
+		"years": {
+			"required": ["user"],
+			"handlers": ["admin"]
+		},
+		"getorder": {
+			"required": ["order_nick", "order_id?"]
+		},
+		"orderfast": {
+			"required": ["order_id"]
+		},
+		"addtoactive": {
+			"required": ["count", "article_nick", "active_id#create"],
+			"handlers": ["post"],
+			"goal": "basket"
+		},
+		"addtoorder": {
+			"required": ["count", "article_nick", "order_id"],
+			"handlers": ["post"]
+		},
+		"add": {
+			"required": ["count", "position_id", "order_id#"],
+			"handlers": ["post", "checkstatus", "edit", "paid"],
+			"statuses": ["wait"]
+		},
+
+
+		"settransport": {
+			"required": ["transport", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+
+		"setcoupon": {
+			"required": ["coupon", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+
+		"setcomment": {
+			"required": ["comment", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setzip": {
+			"required": ["zip", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setname": {
+			"required": ["name", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setaddress": {
+			"required": ["address", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setemail": {
+			"required": ["email", "place", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setphone": {
+			"required": ["phone", "place", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setcdek": {
+			"required": ["pvz", "transport", "place", "order_id", "city_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setpvz": {
+			"required": ["pvz", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setpay": {
+			"required": ["pay", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setcallback": {
+			"required": ["callback", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setcity": {
+			"required": ["city_id", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+		"setlang": {
+			"required": ["lang", "order_id"],
+			"handlers": ["post", "edit", "paid"]
+		},
+
+		"remove": {
+			"required": ["order_id", "position_ids"],
+			"handlers": ["post", "edit", "paid"],
+			"title": "CR051"
+		},
+
+
+		"check": {
+			"required": ["order_id"],
+			"title": "CR049.m1",
+			"goal": "cart",
+			"statuses": ["wait"],
+			"handlers": ["post", "checkstatus", "checkdata", "paid", "freeze"]
+		},
+		"tocheck": {
+			"required": ["order_id"],
+			"title": "CR049b.m1",
+			"statuses": ["complete"],
+			"handlers": ["post", "admin", "checkstatus", "paid"]
+		},
+		"complete": {
+			"required": ["order_id"],
+			"handlers": ["post", "admin", "checkstatus"],
+			"statuses": ["check", "wait"],
+			"title": "CR038.m1",
+			"confirm": "CR039.m1"
+		},
+		"wait": {
+			"required": ["order_id"],
+			"handlers": ["post", "checkstatus", "unfreeze"],
+			"title": "CR050.1m",
+			"statuses": ["check", "pay"]
+
+		},
+		"paykeeper": {
+			"required": ["order_id"],
+			"statuses": ["wait"],
+			"handlers": ["post", "checkstatus", "checkdata"],
+			"title": "1.m2",
+			"gohistory": {
+				"orders": "/cart/orders/{order_nick}",
+				"admin": "/cart/admin/{order_nick}"
+			},
+			"go": {
+				"orders": "/cart/orders/{order_nick}/paykeeper",
+				"admin": "/cart/admin/{order_nick}/paykeeper"
+			}
+		},
+		"delete": {
+			"required": ["order_id"],
+			"handlers": ["post", "admin", "paid"],
+			"title": "CR047"
+		},
+
+
+		"clear": {
+			"required": ["order_id"],
+			"statuses": ["wait"],
+			"handlers": ["post", "checkstatus", "paid"],
+			"title": "CR035.m1",
+			"confirm": "CR036.m1"
+		},
+		"print": {
+			"required": ["order_id"],
+			"title": "CR052.m1",
+			"go": {
+				"orders": "/cart/orders/{order_nick|:active}/print",
+				"admin": "/cart/admin/{order_nick|:active}/print"
+			}
+		},
+		"basket": {
+			"required": ["order_id"],
+			"title": "CR053.m1",
+			"go": {
+				"orders": "/cart/orders/{order_nick|:active}/list",
+				"admin": "/cart/admin/{order_nick|:active}/list"
+			}
+		},
+		"setcommentmanager": {
+			"required": ["order_id"],
+			"handlers": ["post", "admin"]
+		},
+		"email": {
+			"required": ["order_id"],
+			"handlers": ["post", "admin"],
+			"title": "CR054.M1"
+		}
+	}

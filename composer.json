@@ -1,0 +1,15 @@
+{
+    "name": "akiyatkin/meta",
+    "require":{
+        "infrajs/ans":"~1",
+        "infrajs/access":"~1",
+        "infrajs/mail":"~1",
+        "infrajs/path":"~1",
+        "infrajs/lang":"~1"
+    },
+    "autoload":{
+        "psr-4":{
+            "akiyatkin\\meta\\":"/"
+        }
+    }
+}
