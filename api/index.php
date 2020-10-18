@@ -2,7 +2,7 @@
 
 use akiyatkin\meta\Meta;
 use infrajs\rest\Rest;
-
+use infrajs\ans\Ans;
 
 $context = new Meta(); //Если указан путь, то всё сверяется с meta.json
 
@@ -24,13 +24,12 @@ $context->addFunction('post', function () {
 
 //Обработка с зависимостью от родителя
 //handler, приходит какое-то стартовое значение, смысл которого зависит от того к чему handler привязан (arg, action, handler, var)
-$context->addHandler('notempty', ['post'], function ($notempty, $pname) {
+$context->addHandler('notempty', ['post'], function ($a,$b, $notempty, $pname) {
 	if (!$notempty) return $this->fail('empty', $pname);
 });
 
 $context->addFunction('Check the legality of the action', function () {
-	extract($this->gets(['action', 'order_id']));
-	if (!$notempty) return $this->fail('empty', $pname);
+	extract($this->gets(['action']));
 });
 
 //Обработка не зависиот от родителя. Приходит Request, наличие обязательно, из адреса не запускается
@@ -38,7 +37,8 @@ $context->addArgument('order_id', ['notempty']);
 $context->addArgument('order_nick', ['notempty']);
 
 $context->addVariable('order_id@valid', function () {
-	if ($this->is('order_nick')) {
+
+	if ($this->is('order_nick')) {		
 		$order_nick = $this->get('order_nick');
 		$order_id = $order_nick;
 	} else {
@@ -60,8 +60,15 @@ $context->addAction('getorder', ['order_nick'], function ($beforename) {
 	$this->ans['order'] = $order;
 });
 
-$context->add('fastorder', function () {
-
+$context->addAction('fastorder', ['order_nick'], function () {
+	extract($this->gets(['order_id@valid']));
+	$this->ans['tadam'] = 1;
+});
+$context->add('', function () {
+	
+});
+$context->add('action', function () {
+	
 });
 $action = Rest::first();
 return $context->init($action);

@@ -12,7 +12,6 @@ use infrajs\lang\Lang;
 //lang может быть использован из адреса.
 //lang meta и lang приложения не могут отсутствовать/не совпадать
 class Meta {
-	public $params = [];
 	public $list = [];
 	public function __construct($name = 'meta', $lang = 'ru', $src = false) {
 		$this->ans = [];
@@ -20,7 +19,7 @@ class Meta {
 		$this->name = $name;
 		$this->src = $src;
 	}
-	public function &add($pname, $a1, $a2, $a3 = null) {
+	public function &add($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$from = null;
 		$after = null;
 		$before = null;
@@ -40,10 +39,15 @@ class Meta {
 			$before = $a1;
 			$after = $a3;
 		} else {
-			$before = $a1;
-			$after = $a2;
+			if ($a2) {
+				$before = $a1;
+				$after = $a2;
+			} else {
+				$after = $a1;
+			}
 		}
 		$this->list[$pname] = [
+			'process' => false,
 			'request' => false, //Нужно ли брать из REQUEST
 			'required' => false, //Нужно ли выкидывать исключение если нет request
 			'result' => null,
@@ -56,31 +60,32 @@ class Meta {
 		];
 		return $this->list[$pname];
 	}
-	public function addHandler() {
+	public function addHandler($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['cache'] = true;
 		$opt['request'] = false;
 		$opt['required'] = false;
 	}
-	public function addArguments() {
+	public function addArgument($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['cache'] = true;
 		$opt['request'] = true;
 		$opt['required'] = true;
 	}
-	public function addVariable() {
+	public function addVariable($pname, $a1 = null, $a2 = null, $a3 = null) {
+		$opt = &$this->add($pname, $a1, $a2, $a3);
+		
+		$opt['cache'] = true;
+		$opt['request'] = false;
+		$opt['required'] = false;
+	}
+	public function addAction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['cache'] = true;
 		$opt['request'] = false;
 		$opt['required'] = false;
 	}
-	public function addActions() {
-		$opt = &$this->add($pname, $a1, $a2, $a3);
-		$opt['cache'] = true;
-		$opt['request'] = false;
-		$opt['required'] = false;
-	}
-	public function addFunctions() {
+	public function addFunction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['cache'] = false;
 		$opt['request'] = false;
@@ -102,34 +107,51 @@ class Meta {
 		$this->get($action);
 		$this->ret('ready');
 	}
-	public function &get($action, $parentvalue = null, $parentname = null) {
-		if (empty($this->list[$action])) $this->fail('notfound');
-		$opt = &$this->list[$action];
+	public function gets($pnames) {
+		foreach ($pnames as $pname) {
+			$vname = preg_split('/[@\?]/', $pname)[0];
+			$res[$vname] = &$this->get($pname);
+		}
+		return $res;
+	}
+
+	public function &get($pname, $parentvalue = null, $parentname = null) {
+		if (empty($this->list[$pname])) $this->fail('notfound', $pname);
+		$opt = &$this->list[$pname];
+		if ($opt['process']) $this->fail('recursion');
+		$opt['process'] = true;
+
 		if ($opt['cache'] && $opt['ready']) return $opt['result'];
+
 		$res = null;
+		
 		if ($opt['before']) {
 			foreach ($opt['before'] as $n) {
-				$this->get($n, $res, $action);
+				$this->get($n, $res, $pname);
 			}
 		}
+
 		if ($opt['from']) {
-			$res = $this->get($opt['from'], $res, $action);
-		} else if ($opt['func']) {
+			$res = $this->get($opt['from'], $res, $pname);
+		} else {
 			if ($opt['request']) {
-				$res = Ans::REQS($action)
+				$res = Ans::REQS($pname);
 			}
 			if ($opt['required']) {
-				if (is_null($res)) $this->fail('required', $action);
+				if (is_null($res)) $this->fail('required', $pname);
 			}
-			\Closure::bind($opt['func'], $this)($res, $action, $parentvalue, $parentname);
-			$fn();
+			if ($opt['func']) {	
+				$res = \Closure::bind($opt['func'], $this)($res, $pname, $parentvalue, $parentname);
+			}
 		}
 		if ($opt['after']) {
 			foreach ($opt['after'] as $n) {
-				$this->get($n, $res, $action);
+				$this->get($n, $res, $pname);
 			}	
 		}
+		$opt['ready'] = true;
 		$opt['result'] = &$res;
+		$opt['process'] = false;
 		return $opt['result'];
 	}
 
@@ -155,7 +177,7 @@ class Meta {
 		return implode('-', $lines);
 	}
 	public function addBacktrace() {
-		$ans = &$this->params['ans'];
+		$ans = &$this->ans;
 		$back = debug_backtrace();
 		foreach ($back as $i => $e) {
 			unset($back[$i]['object']);
@@ -164,25 +186,29 @@ class Meta {
 		$lines = [];
 		foreach ($back as $i => $e) {
 			if (empty($e['file'])) continue;
+			if ($i > sizeof($back) - 5) continue;
+			//$name = basename($e['file'] ?? '');
+			//if ($name == 'Meta.php') continue;
 			$lines[] = basename($e['file']).', '.$e['line'].', '.$e['function'];
 		}
 		$ans['backtrace'] = $lines;
 	}
 
-	/*
-		Языковой файл для кода может быть как в meta/ так и в том расширении где используется meta/
-	*/
 	public function _fail($namecode, $pname = false) {
-		if ($this->question) throw new \Exception();
 		$ans = &$this->ans;
 		$lang = $this->list['lang']['result'] ?? $this->lang;
-		if (Access::isDebug()) $this->addBacktrace();
 
-		$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
-			return $opt['ready'];
-		}));
+		if (Access::isDebug()) {
+			$this->addBacktrace();
+			$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
+				return $opt['ready'] || $opt['process'];
+			}));
+		}
+
 		
-		if (!$pname) {			
+		
+
+		if (!$pname) {
 			$ans = Lang::fail($ans, $lang, $namecode.'.'.$this->action.'-'.$this->addBacktraceLines());
 			throw new \Exception();
 		}
@@ -191,16 +217,17 @@ class Meta {
 		throw new \Exception();
 	}
 	public function fail($code, $pname = false) {
-		return $this->_fail($this->name.'.'.$code);
+		return $this->_fail($this->name.'.'.$code, $pname);
 	}
 	public function _err($namecode, $pname = false) {
-		if ($this->question) throw new \Exception();
 		$ans = &$this->ans;
 		$lang = $this->list['lang']['result'] ?? $this->lang;
-		if (Access::isDebug()) $this->addBacktrace();
-		$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
-			return $opt['ready'];
-		}));
+		if (Access::isDebug()) {
+			$this->addBacktrace();
+			$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
+				return $opt['ready'] || $opt['process'];
+			}));
+		}
 
 		if (!$pname) {
 			$ans = Lang::err($ans, $lang, $namecode);
@@ -211,19 +238,24 @@ class Meta {
 		throw new \Exception();
 	}
 	public function err($code, $pname = false) {
-		return $this->_err($this->name.'.'.$code);
+		return $this->_err($this->name.'.'.$code, $pname);
 	}
 	public function _ret($namecode = false, $pname = false) {
 		$ans = &$this->ans;
 		$lang = $this->list['lang']['result'] ?? $this->lang;
-		if (Access::isDebug()) $this->addBacktrace();
-		if (!$pname) return Lang::ret($ans, $lang, $this->name.'.'.$code);
+		if (Access::isDebug()) {
+			$this->addBacktrace();
+			$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
+				return $opt['ready'] || $opt['process'];
+			}));
+		}
+		if (!$pname) return Lang::ret($ans, $lang, $namecode);
 		$ans['payload'] = $pname;
-		return Lang::rettpl($ans, $lang, $this->name.'.'.$code);
+		return Lang::rettpl($ans, $lang, $namecode);
 	}
 	public function ret($code, $pname = false) {
 		if (!$code) return Lang::ret($ans);
-		return $this->_ret($this->name.'.'.$code);
+		return $this->_ret($this->name.'.'.$code, $pname);
 	}
 
 }
