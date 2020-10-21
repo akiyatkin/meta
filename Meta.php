@@ -11,6 +11,8 @@ use infrajs\lang\Lang;
 
 //lang может быть использован из адреса.
 //lang meta и lang приложения не могут отсутствовать/не совпадать
+class MetaException extends \Exception {
+}
 class Meta {
 	public $list = [];
 	public function __construct($name = 'meta', $lang = 'ru', $src = false) {
@@ -97,7 +99,7 @@ class Meta {
 	public function init($action) {
 		try {
 			return $this->initnow($action);//Exception нужны чтобы различать ответ от ошибки
-		} catch (\Exception $e) {			
+		} catch (MetaException $e) {			
 			return $this->ans;
 		}
 
@@ -210,11 +212,11 @@ class Meta {
 
 		if (!$pname) {
 			$ans = Lang::fail($ans, $lang, $namecode.'.'.$this->action.'-'.$this->addBacktraceLines());
-			throw new \Exception();
+			throw new MetaException();
 		}
 		$ans['payload'] = $pname;
 		$ans = Lang::failtpl($ans, $lang, $namecode);
-		throw new \Exception();
+		throw new MetaException();
 	}
 	public function fail($code, $pname = false) {
 		return $this->_fail($this->name.'.'.$code, $pname);
@@ -231,11 +233,11 @@ class Meta {
 
 		if (!$pname) {
 			$ans = Lang::err($ans, $lang, $namecode);
-			throw new \Exception();
+			throw new MetaException();
 		} 
 		$ans['payload'] = $pname;
 		$ans = Lang::errtpl($ans, $lang, $namecode);
-		throw new \Exception();
+		throw new MetaException();
 	}
 	public function err($code, $pname = false) {
 		return $this->_err($this->name.'.'.$code, $pname);
