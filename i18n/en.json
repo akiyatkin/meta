@@ -1,3 +1,5 @@
 {
-	"required":"Valid {payload} required"
+	"required":"Valid {payload} required",
+	"ready":"Ready",
+	"notfound":"Unregistered handler {payload}"
 }

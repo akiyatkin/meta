@@ -8,18 +8,17 @@ use infrajs\db\Db;
 use infrajs\mail\Mail;
 use infrajs\access\Access;
 use infrajs\lang\Lang;
+use infrajs\cache\CacheOnce;
 
 //lang может быть использован из адреса.
-//lang meta и lang приложения не могут отсутствовать/не совпадать
+//lang meta и lang приложения не могут отсутствовать/не совпадать.
 class MetaException extends \Exception {
 }
-class Meta {
+class Meta {	
+	use CacheOnce; //once($name, $args, $fn) , $once
 	public $list = [];
-	public function __construct($name = 'meta', $lang = 'ru', $src = false) {
-		$this->ans = [];
-		$this->lang = $lang;
-		$this->name = $name;
-		$this->src = $src;
+	public function __construct($name = 'meta', $lang = 'ru', $src = false, $base = false) {
+		
 	}
 	public function &add($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$from = null;
@@ -57,7 +56,7 @@ class Meta {
 			'cache' => false,
 			'func' => $func,
 			'after' => $after,
-			'before' => $before,
+			'before' => $before,			
 			'from' => $from
 		];
 		return $this->list[$pname];
@@ -96,18 +95,29 @@ class Meta {
 	public function is($pname) {
 		return $this->list[$pname]['ready'];
 	}
-	public function init($action) {
+	public function init($opt = []) {
+		extract(array_merge([
+			'handlers'=> [],
+			'name' => 'meta',
+			'base' => false,
+			'lang' => 'ru',
+			'action' => explode('/', str_replace($opt['base'] ?? '/-'.$opt['name'], '', explode('?',$_SERVER['REQUEST_URI'],2)[0]), 3)[1] ?? ''
+		], $opt), EXTR_REFS);
+
+
+		$this->action = $action;
+		$this->ans = ['action'=> $this->action];
+		$this->lang = $lang;
+		$this->name = $name;
+		
 		try {
-			return $this->initnow($action);//Exception нужны чтобы различать ответ от ошибки
-		} catch (MetaException $e) {			
+			foreach ($handlers as $hand) $this->get($hand);
+			$this->get($this->action);
+			//$this->_ret('meta.ready');
+		} catch (MetaException $e) {
 			return $this->ans;
 		}
 
-	}
-	public function initnow($action) {
-		$this->action = $action;
-		$this->get($action);
-		$this->ret('ready');
 	}
 	public function gets($pnames) {
 		foreach ($pnames as $pname) {
@@ -118,7 +128,7 @@ class Meta {
 	}
 
 	public function &get($pname, $parentvalue = null, $parentname = null) {
-		if (empty($this->list[$pname])) $this->fail('notfound', $pname);
+		if (empty($this->list[$pname])) $this->_fail('meta.notfound', $pname);
 		$opt = &$this->list[$pname];
 		if ($opt['process']) $this->fail('recursion');
 		$opt['process'] = true;
@@ -140,7 +150,7 @@ class Meta {
 				$res = Ans::REQS($pname);
 			}
 			if ($opt['required']) {
-				if (is_null($res)) $this->fail('required', $pname);
+				if (is_null($res)) $this->_fail('meta.required', $pname);
 			}
 			if ($opt['func']) {	
 				$res = \Closure::bind($opt['func'], $this)($res, $pname, $parentvalue, $parentname);
@@ -211,11 +221,11 @@ class Meta {
 		
 
 		if (!$pname) {
-			$ans = Lang::fail($ans, $lang, $namecode.'.'.$this->action.'-'.$this->addBacktraceLines());
+			Lang::fail($ans, $lang, $namecode.'.'.$this->action.'-'.$this->addBacktraceLines());
 			throw new MetaException();
 		}
 		$ans['payload'] = $pname;
-		$ans = Lang::failtpl($ans, $lang, $namecode);
+		Lang::failtpl($ans, $lang, $namecode);
 		throw new MetaException();
 	}
 	public function fail($code, $pname = false) {
@@ -251,9 +261,15 @@ class Meta {
 				return $opt['ready'] || $opt['process'];
 			}));
 		}
-		if (!$pname) return Lang::ret($ans, $lang, $namecode);
+
+		if (!$pname) {
+			Lang::ret($ans, $lang, $namecode);
+			throw new MetaException();
+		}
+
 		$ans['payload'] = $pname;
-		return Lang::rettpl($ans, $lang, $namecode);
+		Lang::rettpl($ans, $lang, $namecode);
+		throw new MetaException();
 	}
 	public function ret($code, $pname = false) {
 		if (!$code) return Lang::ret($ans);
