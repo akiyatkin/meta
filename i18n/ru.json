@@ -1,5 +1,6 @@
 {
 	"required":"Требуется корректный {payload}",
 	"ready":"Готово",
+	"emptyrequest":"Укажите действие {payload}",
 	"notfound":"Незарегистрированая обработка {payload}"
 }
