@@ -38,7 +38,7 @@ class Meta {
 		
 		try {
 			foreach ($handlers as $hand) $this->get($hand);
-			$this->get($this->action);
+			return $this->get($this->action);
 			//$this->_ret('meta.ready');
 		} catch (MetaException $e) {
 			return $this->ans;
@@ -46,7 +46,6 @@ class Meta {
 
 	}
 	public function &add($pname, $a1 = null, $a2 = null, $a3 = null) {
-		$from = null;
 		$after = null;
 		$before = null;
 		$func = null;
@@ -58,10 +57,8 @@ class Meta {
 			$before = $a1;
 			$after = $a3;
 		} else if (is_string($a1)) {
-			$from = $a1;
 			$after = $a2;
 		} else if (is_string($a2)) {
-			$from = $a2;			
 			$before = $a1;
 			$after = $a3;
 		} else {
@@ -69,7 +66,7 @@ class Meta {
 				$before = $a1;
 				$after = $a2;
 			} else {
-				$after = $a1;
+				$before = $a1;
 			}
 		}
 		$this->list[$pname] = [
@@ -79,48 +76,47 @@ class Meta {
 			'required' => false, //Нужно ли выкидывать исключение если нет request
 			'result' => null,
 			'ready' => false,
-			'cache' => false,
+			'cache' => null,
 			'type' => null,
 			'func' => $func,
 			'after' => $after,
-			'before' => $before,			
-			'from' => $from
+			'before' => $before
 		];
 		return $this->list[$pname];
 	}
 	public function addHandler($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'handler';
-		$opt['cache'] = true;
 		$opt['request'] = false;
+		$opt['cache'] = true;
 		$opt['required'] = false;
 	}
 	public function addArgument($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'argument';
-		$opt['cache'] = true;
 		$opt['request'] = true;
+		$opt['cache'] = true;
 		$opt['required'] = true;
 	}
 	public function addVariable($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'variable';
-		$opt['cache'] = true;
 		$opt['request'] = false;
+		$opt['cache'] = true;
 		$opt['required'] = false;
 	}
 	public function addAction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'action';
-		$opt['cache'] = true;
 		$opt['request'] = false;
+		$opt['cache'] = true;
 		$opt['required'] = false;
 	}
 	public function addFunction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'function';
-		$opt['cache'] = false;
 		$opt['request'] = false;
+		$opt['cache'] = false;
 		$opt['required'] = false;
 	}
 	public function empty() {	
@@ -128,7 +124,7 @@ class Meta {
 			if (!$h['name']) return false;
 			return $h['type'] == 'action';
 		})));
-	 	return $this->_err('meta.emptyrequest', $actions);
+	 	return $this->err('meta.emptyrequest', $actions);
 	}
 	public function is($pname) {
 		return $this->list[$pname]['ready'];
@@ -150,30 +146,28 @@ class Meta {
 
 		if ($opt['cache'] && $opt['ready']) return $opt['result'];
 
-		$res = null;
 		
+		if ($opt['request']) {
+			$res = Ans::REQS($pname);
+		} else {
+			$res = $parentvalue;
+		}
 		if ($opt['before']) {
 			foreach ($opt['before'] as $n) {
-				$this->get($n, $res, $pname);
+				$r = $this->get($n, $res, $pname);
+				if (!is_null($r)) $res = $r;
 			}
 		}
-
-		if ($opt['from']) {
-			$res = $this->get($opt['from'], $res, $pname);
-		} else {
-			if ($opt['request']) {
-				$res = Ans::REQS($pname);
-			}
-			if ($opt['required']) {
-				if (is_null($res)) $this->_fail('meta.required', $pname);
-			}
-			if ($opt['func']) {	
-				$res = \Closure::bind($opt['func'], $this)($res, $pname, $parentvalue, $parentname);
-			}
+		if ($opt['required']) {
+			if (is_null($res)) $this->_fail('meta.required', $pname);
+		}
+		if ($opt['func']) {	
+			$res = \Closure::bind($opt['func'], $this)($res, $parentname);
 		}
 		if ($opt['after']) {
 			foreach ($opt['after'] as $n) {
-				$this->get($n, $res, $pname);
+				$r = $this->get($n, $res, $pname);
+				if (!is_null($r)) $res = $r;
 			}	
 		}
 		$opt['ready'] = true;
