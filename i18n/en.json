@@ -1,6 +1,7 @@
 {
 	"required":"Valid {payload} required",
 	"ready":"Ready",
+	"badrequest":"Bad request",
 	"emptyrequest":"Action required {payload}",
 	"notfound":"Unregistered handler {payload}"
 }

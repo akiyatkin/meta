@@ -37,9 +37,14 @@ class Meta {
 		$this->name = $name;
 		
 		try {
+			if (!$this->list[$this->action]['response']) $this->fail('meta.badrequest');
 			foreach ($handlers as $hand) $this->get($hand);
-			return $this->get($this->action);
-			//$this->_ret('meta.ready');
+			$res = $this->get($this->action);
+			if (!is_null($res)) { //Если ничего не возвращаем, значит сами разрулили с ответом
+				$this->ans[$this->action] = $res;
+				return $this->ret();	
+			}
+
 		} catch (MetaException $e) {
 			return $this->ans;
 		}
@@ -74,6 +79,7 @@ class Meta {
 			'process' => false,
 			'request' => false, //Нужно ли брать из REQUEST
 			'required' => false, //Нужно ли выкидывать исключение если нет request
+			'response' => false,
 			'result' => null,
 			'ready' => false,
 			'cache' => null,
@@ -87,6 +93,7 @@ class Meta {
 	public function addHandler($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'handler';
+		$opt['response'] = false;
 		$opt['request'] = false;
 		$opt['cache'] = true;
 		$opt['required'] = false;
@@ -94,6 +101,7 @@ class Meta {
 	public function addArgument($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'argument';
+		$opt['response'] = false;
 		$opt['request'] = true;
 		$opt['cache'] = true;
 		$opt['required'] = true;
@@ -101,6 +109,7 @@ class Meta {
 	public function addVariable($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'variable';
+		$opt['response'] = false;
 		$opt['request'] = false;
 		$opt['cache'] = true;
 		$opt['required'] = false;
@@ -108,6 +117,7 @@ class Meta {
 	public function addAction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'action';
+		$opt['response'] = true;
 		$opt['request'] = false;
 		$opt['cache'] = true;
 		$opt['required'] = false;
@@ -115,6 +125,7 @@ class Meta {
 	public function addFunction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'function';
+		$opt['response'] = false;
 		$opt['request'] = false;
 		$opt['cache'] = false;
 		$opt['required'] = false;
@@ -146,6 +157,7 @@ class Meta {
 
 		if ($opt['cache'] && $opt['ready']) return $opt['result'];
 
+		$forname = $parentname ?? $pname;
 		
 		if ($opt['request']) {
 			$res = Ans::REQS($pname);
@@ -154,7 +166,7 @@ class Meta {
 		}
 		if ($opt['before']) {
 			foreach ($opt['before'] as $n) {
-				$r = $this->get($n, $res, $pname);
+				$r = $this->get($n, $res, $forname);
 				if (!is_null($r)) $res = $r;
 			}
 		}
@@ -162,7 +174,8 @@ class Meta {
 			if (is_null($res)) $this->_fail('meta.required', $pname);
 		}
 		if ($opt['func']) {	
-			$res = \Closure::bind($opt['func'], $this)($res, $parentname);
+			$r = \Closure::bind($opt['func'], $this)($res, $forname);
+			if (!is_null($r)) $res = $r;
 		}
 		if ($opt['after']) {
 			foreach ($opt['after'] as $n) {
@@ -230,7 +243,8 @@ class Meta {
 		
 
 		if (is_null($pname)) {
-			Lang::fail($ans, $lang, $namecode.'.'.$this->action.'-'.$this->addBacktraceLines());
+			//Lang::fail($ans, $lang, $namecode.'.'.$this->action.'-'.$this->addBacktraceLines());
+			Lang::fail($ans, $lang, $namecode.'#'.$this->action);
 			throw new MetaException();
 		}
 		$ans['payload'] = $pname;
@@ -242,7 +256,7 @@ class Meta {
 		return $this->_fail($this->name.'.'.$code, $pname);
 	}
 
-	public function _err($namecode, $pname = null) {
+	public function _err($namecode = null, $pname = null) {
 		$ans = &$this->ans;
 		$lang = $this->list['lang']['result'] ?? $this->lang;
 		if (Access::isDebug()) {
@@ -261,11 +275,11 @@ class Meta {
 		throw new MetaException();
 	}
 	public function err($code = null, $pname = null) {
-		if (!$code) return Lang::err($this->ans);
+		if (!$code) return $this->_err();
 		return $this->_err($this->name.'.'.$code, $pname);
 	}
 
-	public function _ret($namecode = false, $pname = null) {
+	public function _ret($namecode = null, $pname = null) {
 		$ans = &$this->ans;
 		$lang = $this->list['lang']['result'] ?? $this->lang;
 		if (Access::isDebug()) {
@@ -285,7 +299,7 @@ class Meta {
 		throw new MetaException();
 	}
 	public function ret($code = null, $pname = null) {
-		if (!$code) return Lang::ret($this->ans);
+		if (!$code) return $this->_ret();
 		return $this->_ret($this->name.'.'.$code, $pname);
 	}
 
