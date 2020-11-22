@@ -19,7 +19,9 @@ class Meta {
 	public $list = [];
 
 	public function __construct($name = 'meta', $lang = 'ru', $src = false, $base = false) {
-		
+		$this->addAction('', function () {
+			return $this->empty();
+		});
 	}
 	public function init($opt = []) {
 		extract(array_merge([
