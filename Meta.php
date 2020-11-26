@@ -39,7 +39,7 @@ class Meta {
 		$this->name = $name;
 		
 		try {
-			if (!$this->list[$this->action]['response']) $this->fail('meta.badrequest');
+			if (empty($this->list[$this->action]['response'])) $this->fail('meta.badrequest');
 			foreach ($handlers as $hand) $this->get($hand);
 			$res = $this->get($this->action);
 			if (!is_null($res)) { //Если ничего не возвращаем, значит сами разрулили с ответом
@@ -292,12 +292,12 @@ class Meta {
 		}
 
 		if (is_null($pname)) {
-			Lang::ret($ans, $lang, $namecode);
+			$ans = Lang::ret($ans, $lang, $namecode);
 			throw new MetaException();
 		}
 
 		$ans['payload'] = $pname;
-		Lang::rettpl($ans, $lang, $namecode);
+		$ans = Lang::rettpl($ans, $lang, $namecode);
 		throw new MetaException();
 	}
 	public function ret($code = null, $pname = null) {
