@@ -254,7 +254,11 @@ class Meta {
 		throw new MetaException();
 	}
 	public function fail($code = null, $pname = null) {
-		if (!$code) return Lang::err($this->ans);
+		if (!$code) {
+			Lang::fail($this->ans);
+			throw new MetaException();
+		}
+		//if (!$code) return Lang::err($this->ans);
 		return $this->_fail($this->name.'.'.$code, $pname);
 	}
 
