@@ -9,6 +9,7 @@ use infrajs\mail\Mail;
 use infrajs\access\Access;
 use infrajs\lang\Lang;
 use infrajs\cache\CacheOnce;
+use infrajs\config\Config;
 
 //lang может быть использован из адреса.
 //lang meta и lang приложения не могут отсутствовать/не совпадать.
@@ -35,18 +36,27 @@ class Meta {
 
 		$this->action = $action;
 		$this->ans = [];//'action'=> $this->action
-		$this->lang = $lang;
 		$this->name = $name;
+		$conf = Config::get($name);
+		$this->lang = Ans::REQ('lang', $conf['lang']['list'], $conf['lang']['def']);
 		
 		try {
-			if (empty($this->list[$this->action]['response'])) $this->fail('meta.badrequest');
-			foreach ($handlers as $hand) $this->get($hand);
+			if (!$this->lang) {
+				$this->lang = $conf['lang']['def'];
+				return $this->fail('meta.required','lang');
+			}
+			if (empty($this->list[$this->action]['response'])) {
+				$this->fail('meta.badrequest');
+			}
+			foreach ($handlers as $hand) {
+				$this->get($hand);
+			}
 			$res = $this->get($this->action);
 			if (!is_null($res)) { //Если ничего не возвращаем, значит сами разрулили с ответом
 				$this->ans[$this->action] = $res;
 				return $this->ret();	
 			}
-
+			if ($this->ans) return Ans::ans($this->ans);
 		} catch (MetaException $e) {
 			return $this->ans;
 		}
@@ -145,7 +155,7 @@ class Meta {
 	
 	public function gets($pnames) {
 		foreach ($pnames as $pname) {
-			$vname = preg_split('/[@\?]/', $pname)[0];
+			$vname = preg_split('/[\#\*@\?]/', $pname)[0];
 			$res[$vname] = &$this->get($pname);
 		}
 		return $res;
@@ -192,50 +202,49 @@ class Meta {
 	}
 
 
-	public function addBacktraceLines($count = 3) {
-		$back = debug_backtrace();
-		array_splice($back, sizeof($back) - 5);
-		foreach ($back as $i => $e) {
-			unset($back[$i]['object']);
-			$name = basename($e['file'] ?? '');
-			if ($name == 'Meta.php') unset($back[$i]);
-			if (empty($back[$i]['class'])) continue;
-		}
-		unset($back[0]);
-		$lines = [];
-		$c = 0;
-		foreach ($back as $i => $e) {
-			if (empty($e['file'])) continue;
-			if (++$c > $count) break;
+	// public function addBacktraceLines($count = 3) {
+	// 	$back = debug_backtrace();
+	// 	array_splice($back, sizeof($back) - 5);
+	// 	foreach ($back as $i => $e) {
+	// 		unset($back[$i]['object']);
+	// 		$name = basename($e['file'] ?? '');
+	// 		if ($name == 'Meta.php') unset($back[$i]);
+	// 		if (empty($back[$i]['class'])) continue;
+	// 	}
+	// 	unset($back[0]);
+	// 	$lines = [];
+	// 	$c = 0;
+	// 	foreach ($back as $i => $e) {
+	// 		if (empty($e['file'])) continue;
+	// 		if (++$c > $count) break;
 
-			$lines[] = $e['line'];
-		}
-		return implode('-', $lines);
-	}
-	public function addBacktrace() {
-		$ans = &$this->ans;
-		$back = debug_backtrace();
-		foreach ($back as $i => $e) {
-			unset($back[$i]['object']);
-		}
-		unset($back[0]);
-		$lines = [];
-		foreach ($back as $i => $e) {
-			if (empty($e['file'])) continue;
-			if ($i > sizeof($back) - 5) continue;
-			//$name = basename($e['file'] ?? '');
-			//if ($name == 'Meta.php') continue;
-			$lines[] = basename($e['file']).', '.$e['line'].', '.$e['function'];
-		}
-		$ans['backtrace'] = $lines;
-	}
+	// 		$lines[] = $e['line'];
+	// 	}
+	// 	return implode('-', $lines);
+	// }
+	// public function addBacktrace() {
+	// 	$ans = &$this->ans;
+	// 	$back = debug_backtrace();
+	// 	foreach ($back as $i => $e) {
+	// 		unset($back[$i]['object']);
+	// 	}
+	// 	unset($back[0]);
+	// 	$lines = [];
+	// 	foreach ($back as $i => $e) {
+	// 		if (empty($e['file'])) continue;
+	// 		if ($i > sizeof($back) - 5) continue;
+	// 		//$name = basename($e['file'] ?? '');
+	// 		//if ($name == 'Meta.php') continue;
+	// 		$lines[] = basename($e['file']).', '.$e['line'].', '.$e['function'];
+	// 	}
+	// 	$ans['backtrace'] = $lines;
+	// }
 
 	public function _fail($namecode, $pname = null) {
 		$ans = &$this->ans;
 		$lang = $this->list['lang']['result'] ?? $this->lang;
-
 		if (Access::isDebug()) {
-			$this->addBacktrace();
+			//$this->addBacktrace();
 			$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
 				return $opt['ready'] || $opt['process'];
 			}));
@@ -264,16 +273,15 @@ class Meta {
 
 	public function _err($namecode = null, $pname = null) {
 		$ans = &$this->ans;
-		$lang = $this->list['lang']['result'] ?? $this->lang;
 		if (Access::isDebug()) {
-			$this->addBacktrace();
+			//$this->addBacktrace();
 			$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
 				return $opt['ready'] || $opt['process'];
 			}));
 		}
 
 		if (is_null($pname)) {
-			$ans = Lang::err($ans, $lang, $namecode);
+			$ans = Lang::err($ans, $this->lang, $namecode);
 			throw new MetaException();
 		} 
 		$ans['payload'] = $pname;
@@ -287,16 +295,15 @@ class Meta {
 
 	public function _ret($namecode = null, $pname = null) {
 		$ans = &$this->ans;
-		$lang = $this->list['lang']['result'] ?? $this->lang;
 		if (Access::isDebug()) {
-			$this->addBacktrace();
+			//$this->addBacktrace();
 			$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
 				return $opt['ready'] || $opt['process'];
 			}));
 		}
 
 		if (is_null($pname)) {
-			$ans = Lang::ret($ans, $lang, $namecode);
+			$ans = Lang::ret($ans, $this->lang, $namecode);
 			throw new MetaException();
 		}
 

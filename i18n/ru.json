@@ -1,7 +1,9 @@
 {
 	"required":"Требуется корректный {payload}",
 	"ready":"Готово",
+	"forbidden":"Недостаточно прав",
 	"badrequest":"Некорректный запрос",
+	"badresponse":"Некорректный ответ",
 	"emptyrequest":"Укажите действие {payload}",
 	"notfound":"Незарегистрированая обработка {payload}"
 }
