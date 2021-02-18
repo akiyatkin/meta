@@ -1,6 +1,7 @@
 {
 	"required":"Требуется корректный {payload}",
 	"ready":"Готово",
+	"recursion":"Рекурсивный вызов {payload}",
 	"forbidden":"Недостаточно прав",
 	"badrequest":"Некорректный запрос",
 	"badresponse":"Некорректный ответ",

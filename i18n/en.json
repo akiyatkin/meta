@@ -1,6 +1,7 @@
 {
 	"required":"Valid {payload} required",
 	"ready":"Ready",
+	"recursion":"Recursion {payload}",
 	"forbidden":"Access denied",
 	"badrequest":"Bad request",
 	"badresponse":"Bad response",

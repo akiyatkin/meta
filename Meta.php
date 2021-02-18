@@ -48,10 +48,13 @@ class Meta {
 			if (empty($this->list[$this->action]['response'])) {
 				$this->fail('meta.badrequest');
 			}
+			
 			foreach ($handlers as $hand) {
 				$this->get($hand);
 			}
+			
 			$res = $this->get($this->action);
+			
 			if (!is_null($res)) { //Если ничего не возвращаем, значит сами разрулили с ответом
 				$this->ans[$this->action] = $res;
 				return $this->ret();	
@@ -164,10 +167,11 @@ class Meta {
 	public function &get($pname, $parentvalue = null, $parentname = null) {
 		if (empty($this->list[$pname])) $this->_fail('meta.notfound', $pname);
 		$opt = &$this->list[$pname];
-		if ($opt['process']) $this->fail('recursion');
-		$opt['process'] = true;
 
 		if ($opt['cache'] && $opt['ready']) return $opt['result'];
+
+		if ($opt['process']) $this->fail('meta.recursion', $pname);
+		$opt['process'] = true;
 
 		$forname = $parentname ?? $pname;
 		
@@ -189,15 +193,18 @@ class Meta {
 			$r = \Closure::bind($opt['func'], $this)($res, $forname);
 			if (!is_null($r)) $res = $r;
 		}
+
 		if ($opt['after']) {
 			foreach ($opt['after'] as $n) {
 				$r = $this->get($n, $res, $pname);
 				if (!is_null($r)) $res = $r;
 			}	
 		}
+
 		$opt['ready'] = true;
 		$opt['result'] = &$res;
 		$opt['process'] = false;
+		
 		return $opt['result'];
 	}
 
@@ -255,11 +262,11 @@ class Meta {
 
 		if (is_null($pname)) {
 			//Lang::fail($ans, $lang, $namecode.'.'.$this->action.'-'.$this->addBacktraceLines());
-			Lang::fail($ans, $lang, $namecode.'#'.$this->action);
+			$ans = Lang::fail($ans, $lang, $namecode.'#'.$this->action);
 			throw new MetaException();
 		}
 		$ans['payload'] = $pname;
-		Lang::failtpl($ans, $lang, $namecode);
+		$ans = Lang::failtpl($ans, $lang, $namecode);
 		throw new MetaException();
 	}
 	public function fail($code = null, $pname = null) {
