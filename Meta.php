@@ -292,7 +292,7 @@ class Meta {
 			throw new MetaException();
 		} 
 		$ans['payload'] = $pname;
-		$ans = Lang::errtpl($ans, $lang, $namecode);
+		$ans = Lang::errtpl($ans, $this->lang, $namecode);
 		throw new MetaException();
 	}
 	public function err($code = null, $pname = null) {
