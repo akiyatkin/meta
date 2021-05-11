@@ -5,6 +5,7 @@
 	"forbidden":"Access denied",
 	"badrequest":"Bad request",
 	"badresponse":"Bad response",
+	"error":"An error occurred. {payload}",
 	"emptyrequest":"Action required {payload}",
 	"notfound":"Unregistered handler {payload}"
 }

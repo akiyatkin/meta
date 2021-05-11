@@ -5,6 +5,7 @@
 	"forbidden":"Недостаточно прав",
 	"badrequest":"Некорректный запрос",
 	"badresponse":"Некорректный ответ",
+	"error":"Произошла ошибка. {payload}",
 	"emptyrequest":"Укажите действие {payload}",
 	"notfound":"Незарегистрированая обработка {payload}"
 }

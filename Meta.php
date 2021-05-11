@@ -45,20 +45,26 @@ class Meta {
 				$this->lang = $conf['lang']['def'];
 				return $this->fail('meta.required','lang');
 			}
-			if (empty($this->list[$this->action]['response'])) {
+			if (
+				empty($this->list[$this->action]['response'])
+				&&empty($this->list[$this->action]['request'])
+			) {
 				$this->fail('meta.badrequest');
 			}
-			
+		
 			foreach ($handlers as $hand) {
 				$this->get($hand);
 			}
 			
 			$res = $this->get($this->action);
 			
+
 			if (!is_null($res)) { //Если ничего не возвращаем, значит сами разрулили с ответом
-				$this->ans[$this->action] = $res;
+				$vname = preg_split('/[\#\*@\?]/', $this->action)[0];
+				$this->ans[$vname] = $res;
 				return $this->ret();	
 			}
+
 			if ($this->ans) return Ans::ans($this->ans);
 		} catch (MetaException $e) {
 			return $this->ans;
@@ -89,6 +95,7 @@ class Meta {
 				$before = $a1;
 			}
 		}
+		if (isset($this->list[$pname])) throw new \Exception('double handler '.$pname);
 		$this->list[$pname] = [
 			'name' => $pname,
 			'process' => false,
@@ -193,9 +200,10 @@ class Meta {
 			$r = \Closure::bind($opt['func'], $this)($res, $forname);
 			if (!is_null($r)) $res = $r;
 		}
-
+		
 		if ($opt['after']) {
 			foreach ($opt['after'] as $n) {
+
 				$r = $this->get($n, $res, $pname);
 				if (!is_null($r)) $res = $r;
 			}	
@@ -302,6 +310,7 @@ class Meta {
 
 	public function _ret($namecode = null, $pname = null) {
 		$ans = &$this->ans;
+		
 		if (Access::isDebug()) {
 			//$this->addBacktrace();
 			$ans['params'] = array_keys(array_filter($this->list, function ($opt) {
@@ -313,12 +322,14 @@ class Meta {
 			$ans = Lang::ret($ans, $this->lang, $namecode);
 			throw new MetaException();
 		}
-
+		
 		$ans['payload'] = $pname;
-		$ans = Lang::rettpl($ans, $lang, $namecode);
+		$ans = Lang::rettpl($ans, $this->lang, $namecode);
+
 		throw new MetaException();
 	}
 	public function ret($code = null, $pname = null) {
+
 		if (!$code) return $this->_ret();
 		return $this->_ret($this->name.'.'.$code, $pname);
 	}
