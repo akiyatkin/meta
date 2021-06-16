@@ -183,7 +183,7 @@ class Meta {
 		$forname = $parentname ?? $pname;
 		
 		if ($opt['request']) {
-			$res = Ans::REQS($pname);
+			$res = Ans::REQ($pname);
 		} else {
 			$res = $parentvalue;
 		}
