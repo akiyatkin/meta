@@ -136,13 +136,14 @@ class Meta {
 		$opt['cache'] = true;
 		$opt['required'] = false;
 	}
-	public function addAction($pname, $a1 = null, $a2 = null, $a3 = null) {
+	public function &addAction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
 		$opt['type'] = 'action';
 		$opt['response'] = true;
 		$opt['request'] = false;
 		$opt['cache'] = true;
 		$opt['required'] = false;
+		return $opt;
 	}
 	public function addFunction($pname, $a1 = null, $a2 = null, $a3 = null) {
 		$opt = &$this->add($pname, $a1, $a2, $a3);
