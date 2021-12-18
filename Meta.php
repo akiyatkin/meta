@@ -18,7 +18,11 @@ class MetaException extends \Exception {
 class Meta {	
 	use CacheOnce; //once($name, $args, $fn) , $once
 	public $list = [];
-
+	public function langstr($str, $name = false) {
+		if (!$name) $name = $this->name;
+		$lang = $this->lang;
+		return Lang::lang($lang, $name, $str);
+	}
 	public function __construct($name = 'meta', $lang = 'ru', $src = false, $base = false) {
 		$this->addAction('', function () {
 			return $this->empty();

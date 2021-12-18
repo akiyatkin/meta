@@ -1,6 +1,7 @@
 {
 	"required":"Требуется корректный {payload}",
 	"ready":"Готово",
+	"already":"Уже. {payload}",
 	"recursion":"Рекурсивный вызов {payload}",
 	"forbidden":"Недостаточно прав",
 	"badrequest":"Некорректный запрос",
