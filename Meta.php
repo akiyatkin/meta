@@ -192,15 +192,16 @@ class Meta {
 		} else {
 			$res = $parentvalue;
 		}
+		if ($opt['required']) {
+			if (is_null($res)) $this->_fail('meta.required', $pname);
+		}
 		if ($opt['before']) {
 			foreach ($opt['before'] as $n) {
 				$r = $this->get($n, $res, $forname);
 				if (!is_null($r)) $res = $r;
 			}
 		}
-		if ($opt['required']) {
-			if (is_null($res)) $this->_fail('meta.required', $pname);
-		}
+		
 		if ($opt['func']) {	
 			$r = \Closure::bind($opt['func'], $this)($res, $forname);
 			if (!is_null($r)) $res = $r;
