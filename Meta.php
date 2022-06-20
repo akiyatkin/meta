@@ -312,7 +312,12 @@ class Meta {
 		if (!$code) return $this->_err();
 		return $this->_err($this->name.'.'.$code, $pname);
 	}
-
+	public function end($res = null, $msg = null) {
+		if (!is_null($res)) $this->ans['result'] = $res;
+		if (!is_null($msg)) $this->ans['msg'] = $msg;
+		Ans::ans($this->ans);
+		throw new MetaException();
+	}
 	public function _ret($namecode = null, $pname = null) {
 		$ans = &$this->ans;
 		
